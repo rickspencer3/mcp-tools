@@ -1,0 +1,212 @@
+apiVersion: v1
+kind: DynamicContextSource
+metadata:
+  name: sles16-hardening-mcp
+spec:
+  # 1. RESOURCES (System Data)
+  #
+  # Keep resources minimal here: this server's "wow" factor is that the LLM can *invoke tools*
+  # to interrogate the live system safely, without root, and then explain the posture in plain English.
+  resources:
+    - uri: "simple-mcp-hardening://hardening/overview"
+      description: |
+        High-level purpose of this MCP context source.
+
+        This context source is designed to power a very intuitive demo prompt:
+          "Is my server safe?"
+
+        The key idea is that the LLM is not guessing. It can call a small set of safe,
+        read-only tools that run as a normal (non-root) user on SLES 16, collect facts
+        about the live system, and then explain:
+          - what the current attack surface appears to be (what is listening, what services exist),
+          - whether key hardening controls are in place (SELinux mode, SSH posture),
+          - whether privilege and access paths look risky (interactive accounts, admin groups),
+          - and what the highest-signal issues are to investigate next.
+
+        Constraints and expectations:
+          - No root access: every tool is intended to succeed without sudo, or fail gracefully.
+          - No remediation: this MCP is focused on *assessment and explanation* for demo purposes.
+          - Outputs are treated as evidence: the model should cite the tool outputs in its reasoning.
+      content: |
+        SLES 16 non-root hardening posture tools for "Is my server safe?" demos.
+
+    - uri: "simple-mcp-hardening://hardening/typical_port_usage"
+      description: |
+        Describes what some of the less commonly used ports are used for in SLES 16.
+      content: |
+        || port || typical usage ||
+        | 9090 | Used by cockpit, the web interface for configuring and interacting wtih a SLES server. It uses the server's authentication to only allow users with passowrds to log in. |
+
+    - uri: "simple-mcp-hardening://system/os-release"
+      description: "OS identification."
+      command: "cat /etc/os-release"
+      intervalSeconds: 3600
+
+  # 2. TOOLS (Commands) - READ ONLY (NO ROOT REQUIRED)
+  #
+  # These tools are the primary demo mechanism. The LLM should call them in response to questions
+  # and then synthesize a clear, human-readable assessment.
+  contextItems:
+    - name: GetKernelInfo
+      description: |
+        Identify the running kernel and build string.
+
+        Why this matters:
+          - The kernel is the core security boundary; its version influences mitigations,
+            hardening features, and exposure to classes of vulnerabilities.
+          - Even in a demo, it provides a concrete anchor: the LLM can reference the exact kernel
+            rather than speaking abstractly.
+
+        What the LLM should do with the output:
+          - Treat it as baseline evidence of what is actually running.
+          - Use it to sanity-check that the system is not unexpectedly old or unusual.
+      command: "uname -a"
+      parameters: []
+
+    - name: GetCurrentIdentity
+      description: |
+        Show the effective identity (user + groups) of the MCP server process.
+
+        Why this matters:
+          - This MCP server has no root access. The LLM must understand the *visibility limits*
+            of the process collecting context.
+          - If a later command returns partial data or permission errors, the LLM should interpret
+            that as an expected constraint, not as a system property.
+
+        What the LLM should do with the output:
+          - Use it to avoid hallucinating privileged access.
+          - Use it to explain any "cannot access" results honestly and clearly.
+      command: "id"
+      parameters: []
+
+    - name: GetSELinuxStatus
+      description: |
+        Report SELinux status (enabled/disabled, enforcing/permissive, and policy summary).
+
+        Why this matters:
+          - On SLES 16, SELinux is a major hardening control that changes the impact of many mistakes.
+          - "Enforcing" generally means compromises and misconfigurations are more likely to be contained.
+          - "Permissive" or "disabled" often increases risk and is a clear, easy-to-explain demo outcome.
+
+        What the LLM should do with the output:
+          - Explicitly state whether SELinux is enforcing, permissive, or disabled.
+          - Explain what that implies for containment and blast radius.
+      command: "sestatus"
+      parameters: []
+
+    - name: ListNetworkListeners
+      description: |
+        List listening TCP/UDP sockets.
+
+        Why this matters:
+          - This is the most intuitive "attack surface" check: listening ports are potential entry points.
+          - In a demo, it lets the LLM point at concrete exposures (e.g., SSH open, web service open, etc.).
+          - Even without root, the list of ports is typically visible; process attribution may be partial.
+
+        What the LLM should do with the output:
+          - Identify unexpected listening ports.
+          - Distinguish between local-only vs externally reachable where possible.
+          - Recommend which listeners deserve immediate verification.
+      command: "ss -lntup"
+      parameters: []
+
+    - name: ShowIPAddresses
+      description: |
+        Show IP addresses and interfaces.
+
+        Why this matters:
+          - Exposure depends on what networks the host is on (public, private, management LAN, etc.).
+          - Helps the LLM reason about whether listening services are likely reachable from where.
+
+        What the LLM should do with the output:
+          - Identify which interfaces are present (e.g., loopback vs LAN).
+          - Use this to qualify claims about exposure (internal-only vs potentially broader).
+      command: "ip addr show"
+      parameters: []
+
+    - name: ShowEffectiveSSHDConfig
+      description: |
+        Show the effective SSH daemon configuration as interpreted by sshd.
+
+        Why this matters:
+          - Many SSH hardening questions boil down to what sshd actually enforces, not what someone
+            thinks is in the config files.
+          - A single command can reveal whether risky settings might be present (password auth,
+            root login policy, older ciphers, etc.), depending on what sshd reports.
+
+        What the LLM should do with the output:
+          - Summarize the most security-relevant settings in plain English.
+          - Flag anything that appears high-risk for follow-up.
+      command: "command -v sshd >/dev/null 2>&1 && sshd -T || (test -r /etc/ssh/sshd_config && sed -n '1,200p' /etc/ssh/sshd_config || echo 'No sshd binary and cannot read /etc/ssh/sshd_config')"
+      parameters: []
+
+    - name: ListLoginCapableAccounts
+      description: |
+        List accounts that appear to have interactive shells.
+
+        Why this matters:
+          - A common hardening step is limiting who can log in interactively.
+          - This inventory helps spot unexpected accounts with real shells.
+
+        Important nuance for the LLM:
+          - This does NOT prove an account can SSH in, has valid keys/passwords, or is enabled.
+            It is simply an inventory of accounts whose shell is not nologin/false.
+
+        What the LLM should do with the output:
+          - Highlight any surprising accounts.
+          - Explain that this is a coarse signal and should be paired with SSH and auth policy review.
+      command: "awk -F: '$7 !~ /(\\/usr\\/sbin\\/nologin|\\/bin\\/false)$/ {print $1 \":\" $3 \":\" $7}' /etc/passwd"
+      parameters: []
+
+    - name: ListAdminGroupMembership
+      description: |
+        Show membership of common admin groups (sudo and wheel).
+
+        Why this matters:
+          - Group membership is an easy-to-understand indicator of who might have elevated privileges.
+          - It’s not the whole story (sudoers rules can vary), but it’s high-signal for quick triage
+            and makes for a clear demo narrative.
+
+        What the LLM should do with the output:
+          - Identify how many users are in these groups.
+          - Flag unexpectedly broad membership as a potential risk.
+      command: "getent group sudo 2>/dev/null || true; getent group wheel 2>/dev/null || true"
+      parameters: []
+
+    - name: FindSetuidSetgidBinaries
+      description: |
+        Inventory setuid and setgid binaries on the root filesystem (truncated output).
+
+        Why this matters:
+          - setuid/setgid programs are classic privilege-escalation surfaces. In real security work,
+            this list is used to spot unexpected or risky binaries.
+          - Even without root access, this is a powerful posture signal that feels "security real"
+            in a demo.
+
+        Safety / practicality notes:
+          - This is read-only, but it can be slow if run frequently. It’s best used on-demand.
+          - Output is intentionally truncated (via head) so the tool remains demo-friendly.
+
+        What the LLM should do with the output:
+          - Explain what setuid/setgid means at a high level.
+          - Call out anything unexpected and recommend follow-up investigation.
+      command: "find / -xdev \\( -perm -4000 -o -perm -2000 \\) -type f 2>/dev/null | head -n 200"
+      parameters: []
+
+    # discover ip addresses
+    - name: ListAllUpdates
+      description: "Get a list of all updates currently available"
+      command: "zypper list-updates"
+      parameters: []
+  
+    # discover ip addresses
+    - name: ListCVEUpdates
+      description: "Get a list of only updates with associated CVEs"
+      command: "zypper list-patches --cve"
+      parameters: []
+
+    # discover ip addresses
+    - name: GetPatchInfo
+      description: "Get information associated with a patch, including things like the repository, the cendor, the severity, and the description"
+      command: "zypper info -t patch {{patch_name}}"
+      parameters: ["patch_name"]

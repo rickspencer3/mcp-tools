@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: DynamicContextSource
+metadata:
+  name: simple-mcp-server
+spec:
+  # 1. RESOURCES (System Data)
+  resources:
+    - uri: "simple-mcp://system/overview"
+      description: "What this MCP context source is for."
+      content: |
+        Simple test
+       
+    - uri: "simple-mcp://system/os-release"
+      description: "OS identification."
+      command: "cat /etc/os-release"
+      intervalSeconds: 3600
+
+
+  # 2. TOOLS (Commands) - READ ONLY
+  contextItems:
+    # discover ip addresses
+    - name: FindIPAddress
+      description: "Get the IP address of the server."
+      command: "ip addr show"
+      parameters: []

@@ -1,0 +1,13 @@
+# MCPHost Configuration File
+# All command-line flags can be configured here
+
+# Application settings
+system-prompt: "You have full access to the knowledge available to Gemini. Answer questions concisely, in a formal manner"
+model: "google:gemini-2.5-flash"
+provider-api-key: "YOURKEYHERE"
+
+# MCP Servers configuration
+mcpServers:
+  simple-mcp:
+    type: "remote"
+    url: "http://127.0.0.1:8080/mcp"
