@@ -143,3 +143,22 @@ But it can read it. The following will print the contents of the file:
 ```bash
 sudo -u mcp cat /home/mcp/simple-mcp.yaml
 ```
+
+But does mcphost work? Let's try it:
+```bash
+mcphost --config simple-mcp-host.yaml --prompt "are all of the packages up to date?"
+```
+
+And it works!
+```bash
+    Executing simple-mcp__ListAllUpdates (23:21)                                                     
+    
+    Refreshing service 'SUSE_Linux_Enterprise_Server_16.0_x86_64'.
+    Loading repository data...
+    Reading installed packages...
+    No updates found.
+
+    All packages are up to date.
+        gemini-2.5-flash (23:21)
+  ```
+
