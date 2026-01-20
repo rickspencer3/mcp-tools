@@ -138,3 +138,8 @@ You see that the mcp user cannot touch the file:
 [sudo] password for rick: 
 touch: cannot touch '/home/mcp/simple-mcp.yaml': Permission denied
 ```
+
+But it can read it. The following will print the contents of the file:
+```bash
+sudo -u mcp cat /home/mcp/simple-mcp.yaml
+```
