@@ -38,7 +38,7 @@ Create the mcp group:
 sudo groupadd mcp
 ```
 
-Then create the mcp use and them to the mcp group:
+Then create the mcp user and them to the mcp group:
 ```bash
 sudo useradd -r -m -g mcp -s /bin/bash mcp
 ```
@@ -91,7 +91,7 @@ Now we can see that our new tools is running.
 2026/01/20 19:42:09 MCP server starting, listening on localhost:8080/mcp ...
 ```
 
-But is it working? Will ListResources run as root? We can try poking it with simple-mcp-client using our normal user:
+But is it working? Will zypper list-tools run as root? We can try poking it with simple-mcp-client using our normal user:
 ```bash
 simple-mcp-cli tool ListAllUpdates
 ```
