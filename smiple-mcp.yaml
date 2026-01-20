@@ -17,7 +17,7 @@ spec:
 
 
   # 2. TOOLS (Commands) - READ ONLY
-  contextItems:
+  tools:
     # discover ip addresses
     - name: FindIPAddress
       description: "Get the IP address of the server."

@@ -61,7 +61,7 @@ spec:
 
 
   # 2. TOOLS (Commands) - READ ONLY
-  contextItems:
+  tools:
     # discover ip addresses
     - name: FindIPAddress
       description: "Get the IP address of the server."
@@ -84,10 +84,10 @@ Defining a Resource
 [2] The content is what is sent back to the LLM should the LLM request this resource. As you can see, the content can also be the result of a command, such as "cat /etc/os-release".
 
 ### Defining a Tool
-In simple-mcp, tools are in the contextItem list. Here is a very simple example of a tool that provides information back to the LLM:
+Here is a very simple example of a tool that provides information back to the LLM:
 
 ``` yaml
-  contextItems:
+  tools:
     # discover ip addresses
     - name: FindIPAddress # [0]
       description: "Get the IP address of the server." # [1]

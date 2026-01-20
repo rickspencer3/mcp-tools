@@ -46,7 +46,7 @@ spec:
   #
   # These tools are the primary demo mechanism. The LLM should call them in response to questions
   # and then synthesize a clear, human-readable assessment.
-  contextItems:
+  tools:
     - name: GetKernelInfo
       description: |
         Identify the running kernel and build string.
