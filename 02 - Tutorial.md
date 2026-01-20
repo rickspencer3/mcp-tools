@@ -126,3 +126,14 @@ For security reasons, the password you type will not be visible.
 ```
 
 Without the password, the process is stopped.
+
+Same thing if the mcp user tries to write the file:
+
+```bash
+rick@sles16:~> sudo -u mcp echo "my edit" >> /home/mcp/simple-mcp.yaml
+```
+
+You get:
+```bash
+bash: /home/mcp/simple-mcp.yaml: Permission denied
+```
