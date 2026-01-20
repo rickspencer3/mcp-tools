@@ -1,12 +1,13 @@
 # Introduction
 This tutorial will show system administrators how to use SLES 16.0 to expose their expertise and knowledge to the LLM of their choice. The LLM can be running via ollama on the server itself, hosted somewhere else on your network, or via a cloud provider or similar provider.
 
-This is made possible by 2 innovations from SUSE.
-simple-mcp: This is a tool that exposes the Model Context Protocol, but its behavior is defined entirely in yaml, with the yaml defining the MCP interface, as well as the shell commands run in response.
-mcphost: This is a tool that manages connections between multiple MCP servers and an LLM.
+This is made possible by 2 core tools.
+simple-mcp: This is a tool developed by SUSE that exposes the Model Context Protocol, but its behavior is defined entirely in yaml, with the yaml defining the MCP interface, as well as the shell commands run in response.
+mcphost: This is a tool developed by Mark II Labs that SUSE packages for managing connections between multiple MCP servers and an LLM runing on a SLES 16 server.
 
 This tutorial assumes that you are logged into a SLES 16.0 server that has Internet access.
-MCP Concepts
+
+## MCP Concepts
 Here is a very quick overview of how MCP works. MCP stands for “Model Context Protocol.” It is a simple protocol that most LLMs can read. It typically provides 2 different interfaces:
 
 
