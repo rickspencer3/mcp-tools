@@ -56,7 +56,6 @@ echo "mcp ALL=(root) NOPASSWD: /usr/bin/zypper list-updates" | sudo tee /etc/sud
 Then copy the configuration files that you want to use to mcp user's directory.
 ```bash
 sudo cp simple-mcp.yaml /home/mcp
-sudo cp simple-mcp-host.yaml /home/mcp
 ```
 
 This will write the files in the mcp user's home directory, but they will be owned by root. This is desirable, because it means that the mcp user can't be tricked into modifying the files because it doesn't own those files. However, it's not so good because the mcp user also doesn't have permissions to read those files, We fix this by granting group ownership to the mcp group with chown, and then providing read only permissions with chmod. 
@@ -64,9 +63,6 @@ This will write the files in the mcp user's home directory, but they will be own
 ```bash
 sudo chown root:mcp /home/mcp/simple-mcp.yaml
 sudo chmod 640 /home/mcp/simple-mcp.yaml
-
-sudo chown root:mcp /home/mcp/simple-mcp-host.yaml
-sudo chmod 640 /home/mcp/simple-mcp-host.yaml
 ```
 
 Finally, we can run simple-mcp as the mcp user. We'll fully qualify all the paths so that you know you are running the binary you think you are and using the config you think you are.
@@ -98,6 +94,10 @@ Now we can see that our new tools is running.
 But is it working? Will ListResources run as root? We can try poking it with simple-mcp-client using our normal user:
 ```bash
 simple-mcp-cli tool ListAllUpdates
+```
+
+Produces the following output:
+```bash
 2026/01/20 19:59:49 Connected to server: simple-mcp-server
 Refreshing service 'SUSE_Linux_Enterprise_Server_16.0_x86_64'.
 Loading repository data...
@@ -109,7 +109,10 @@ Success! Notice that it says "Refreshing server ... " This means that the comman
 
 ```bash
 sudo -u mcp sudo ls /
+```
 
+Produces the following output:
+```bash
 We trust you have received the usual lecture from the local System
 Administrator. It usually boils down to these three things:
 
@@ -121,3 +124,5 @@ For security reasons, the password you type will not be visible.
 
 [sudo] password for root: 
 ```
+
+Without the password, the process is stopped.
