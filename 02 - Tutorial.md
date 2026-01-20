@@ -26,9 +26,9 @@ In order to safely run that tool as root, but also mitigate other attacks, we wi
  1. Create an mcp user and add it to that group
  1. Optionally, add your existing user to the mcp group
  1. Give the mcp user the capabilities it needs
- 1. Put the configuration files for simple-mcp in /home/mcp
- 1. Set the ownerhsip of the config files to root and give the mcp user only permission to READ the file
- 1. Run simple-mcp and mcphost as the mcp user
+ 1. Put the configuration file for simple-mcp in /home/mcp
+ 1. Set the ownerhsip of the config file to root and give the mcp group only permission to READ the file
+ 1. Run simple-mcp as the mcp user
 
 This is part of mitigating prompt injection attacks, because simple-mcp will be blocked from doing anything that you haven't given it expllicit permission to do. For example, a prompt injection can't trick the mcp server into changing its own configuration, because the server doesn't have permission to change that file.
 
