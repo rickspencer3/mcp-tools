@@ -48,9 +48,9 @@ Optionally, add yourself to the mcp group. This will make it easier to look at t
 sudo usermod -aG mcp $USER
 ```
 
-Now grant the mcp user the abilty to run the zypper refresh command (only that command). It's generally good practive to specify the full path to the binary so the process can't be tricked into running a different binary root.
+Now grant the mcp user the abilty to run the zypper list-updates command (only that command) which, when run as root, will do an implicit refresh as desired. It's generally good practive to specify the full path to the binary so the process can't be tricked into running a different binary root. Additionally, the "NOEXEC" here means that no new processes can be launched, which ensures that or shell can be launched by zypper.
 ```bash
-echo "mcp ALL=(root) NOPASSWD: /usr/bin/zypper list-updates" | sudo tee /etc/sudoers.d/mcp
+echo "mcp ALL=(root) NOPASSWD:NOEXEC: /usr/bin/zypper list-updates" | sudo tee /etc/sudoers.d/mcp
 ```
 
 Then copy the configuration files that you want to use to mcp user's directory.
