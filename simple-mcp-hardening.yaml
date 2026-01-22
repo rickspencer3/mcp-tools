@@ -205,8 +205,10 @@ spec:
       command: "zypper list-patches --cve"
       parameters: []
 
+
+    # DO NOT RUN AS IS, THIS EXPOSES AN INJECTION ATTACK
     # discover ip addresses
-    - name: GetPatchInfo
-      description: "Get information associated with a patch, including things like the repository, the cendor, the severity, and the description"
-      command: "zypper info -t patch {{patch_name}}"
-      parameters: ["patch_name"]
+    # - name: GetPatchInfo
+    #   description: "Get information associated with a patch, including things like the repository, the cendor, the severity, and the description"
+    #   command: "zypper info -t patch {{patch_name}}"
+    #   parameters: ["patch_name"]
