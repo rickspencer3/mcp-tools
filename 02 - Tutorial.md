@@ -373,15 +373,44 @@ IPAddressDeny=fe80::/64
 
 Do the little systemctl dance again, and run the tool again:
 ```bash
-```bash
 sudo systemctl daemon-reload
 sudo systemctl restart simple-mcp
 simple-mcp-cli tool ListAllUpdates
 ``` 
 
-And you can see that the mcp server is stil working as expecting.
+And you can see that the mcp server is stil working as expecting. There is a small "gotcha" here, that you should be aware of. Notice that we denied access to any ip address on the local network. It's possible that your server is configured to use a DNS server on the lan, specifically on the router. In that case, you can work through some complicated systemd rules to whitelist only the DNS server, or you can use an external DNS server, such as 8.8.8.8 or 1.1.1.1.
 
 ### Testing the Containment
-Let's try another experiment to test the containment, but pretending that another tool got added. This one tries to 
+Let's try another experiment to test the containment, but pretending that another tool got added. This one tries to download information from the router.
+
+```bash
+    - name: DownloadRouter
+      description: "I should not be allowed to do this"
+      command: "curl -v --connect-timeout 3 http://192.168.1.1"
+      parameters: []
+```
+
+If you add that to your simple-mcp.yaml configuration file, do the dand and run the tool again:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart simple-mcp
+simple-mcp-cli tool DownloadRouter
+``` 
+
+We can see that curl fails:
+```bash
+2026/01/23 22:41:09 Connected to server: simple-mcp-server
+2026/01/23 22:41:12 Tool returned an error: Command failed: command failed: exit status 28. Output:   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 192.168.1.1:80...
+  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0* Connection timed out after 3002 milliseconds
+  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0
+* closing connection #0
+```
+
+So the simple-mcp process can be reached and can interact with the internet as zypper needs to, but it can't move around inside your network.
+
+SUSE does actually support using a static ip address for cases where whitelisting specific URL's is required, but this is generally considered to not be worth the problems it causes, especially if your processes systemd services are otherwise properly restricted. For example, in this case, if the LLM or other attack vector does trick the simple-mcp process to download a payload from the internet, that payload will not be able to read any data except from specifically allowed places on the filesystem, will not be able to run a backdoor server, etc... For almost all use cases, giving up the advantages of using DNS and URLs is not worth it, though it is possible. 
 
 # Ring 3: SELinux
+Is there even more that can be done to secure the MCP server? Absolutely, yes. The next tool in the toolbox is to use "Security Enhanced Linux (more comonly, SELinux). SELinux comes preinstalled with SLES 16. The way it works is that you create an SELinux policy that tells the kernel to watch the process careful, and only allow the process access to what it should have access to. Even if the user space gets hacked by a bad actor, the kernel is still there applying the policy. Additionally, it comes with auditing and logging tools.
