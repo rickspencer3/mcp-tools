@@ -1,0 +1,26 @@
+[Unit]
+Description=Simple MCP Server
+After=network.target
+
+[Service]
+User=mcp
+Group=mcp
+
+# Run the fully qualified binary pointing the config file in the standard location
+ExecStart=/usr/bin/simple-mcp --config /etc/simple-mcp/simple-mcp.yaml
+
+# --- Give access only to necessary parts of the file system
+ProtectSystem=strict
+ReadWritePaths=/var/log /var/cache/zypp /tmp /run /etc/zypp /var/lib/zypp /var/lib/rpm
+
+# --- Block access to the home dir
+ProtectHome=yes
+
+# Put temporary files in a private location
+PrivateTmp=yes
+
+# zypper list-updates needs to run as root, so don't block that
+NoNewPrivileges=false
+
+[Install]
+WantedBy=multi-user.target
