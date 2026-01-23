@@ -167,6 +167,7 @@ And it works!
 # Ring 2: systemd
 Next we will configure a systemd service to run the simple-mcp server. Running under systemd allows proper logging through journalctl, and other conveniences, but for our purposes, it will also mean that we can present a view of the filesystem to the process that is strictly limited to only what it needs. In this way, in the event that someone does get control of the running simple-mcp process, their access is limited. 
 
+## Securing the Filesystem
 To run as a systemd service you need to put the configuration files where a systemd service expects to find it, in the /etc/ directory, and then create a service file in the TOML format that:
 
  1. Describes the services to the system
@@ -174,7 +175,6 @@ To run as a systemd service you need to put the configuration files where a syst
  1. The command to run on startup
  1. The file access that is needed for the service (and only the file access that is needed)
  1. Whether or not the the service is allowed new privilege (this is needed so that zypper list-updates can run as root)
-
 
 Because we are running it under the mcp user, it means that all of the restrictions and permissions we configured above will apply. However, it is customary and expected that the system file will run in /etc/simple-mcp/ not in the mcp home directory. So first, we will copy the file there as root, and then grant read permissions to the mcp group as we did before.
 
@@ -301,7 +301,7 @@ Reading installed packages...
 
 Notice that ListAllUpdates includes "Refreshing service", which means that command was able to ru with root.
 
-## Testing The Containment
+### Testing The Containment
 Let's imagine that somehow a new tool got added to the configuration that tries to read from teh home directory. Running under the mcp user as normal this would totally allowed, it's the mcp user's home dir, afterall. If you want to test out this scenario, you can add this tool to simple-mcp.yaml file:
 
 ```yaml
@@ -348,5 +348,40 @@ Aha! But it doesn't work, because system said it doesn't have access!
 2026/01/23 18:53:52 Connected to server: simple-mcp-server
 2026/01/23 18:53:52 Tool returned an error: Command failed: command failed: exit status 2. Output: ls: cannot access '/home/mcp': Permission denied
 ```
+
+## Securing the Network
+It is not possible to simply blanket deny access to the network for the mcp serer, because:
+ 1. The MCP server listens to port 8080 for inbound connections, though only on the local system at address 127.0.0.1.
+ 1. zypper list-updates requires an outbound connection to a repository mirror. 
+
+However, it is possible to tighten up the use of the network to make it hard for an attacker to turn the mcp server into backdoor, or from moving laterally in your network. We will add some policy to the service file for this. Add the following to the service file.
+
+```toml
+# allow networking so zypper can work
+PrivateNetwork=no
+
+# only allow inbound connections for tcp and only on port 8080
+SocketBindAllow=tcp:8080
+SocketBindDeny=any
+
+# stop any outbound access to anywhere in the LAN
+IPAddressDeny=192.168.0.0/16
+IPAddressDeny=172.16.0.0/12
+IPAddressDeny=10.0.0.0/8
+IPAddressDeny=fe80::/64
+```
+
+Do the little systemctl dance again, and run the tool again:
+```bash
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart simple-mcp
+simple-mcp-cli tool ListAllUpdates
+``` 
+
+And you can see that the mcp server is stil working as expecting.
+
+### Testing the Containment
+Let's try another experiment to test the containment, but pretending that another tool got added. This one tries to 
 
 # Ring 3: SELinux

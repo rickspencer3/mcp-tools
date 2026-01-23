@@ -22,5 +22,18 @@ PrivateTmp=yes
 # zypper list-updates needs to run as root, so don't block that
 NoNewPrivileges=false
 
+# allow networking so zypper can work
+PrivateNetwork=no
+
+# only allow inbound connections for tcp and only on port 8080
+SocketBindAllow=tcp:8080
+SocketBindDeny=any
+
+# stop any outbound access to anywhere in the LAN
+IPAddressDeny=192.168.0.0/16
+IPAddressDeny=172.16.0.0/12
+IPAddressDeny=10.0.0.0/8
+IPAddressDeny=fe80::/64
+
 [Install]
 WantedBy=multi-user.target
