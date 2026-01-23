@@ -20,7 +20,7 @@ There is a third interface called “prompts”, but that is not much used, and 
 Set Up
 In order to use both mcphost and simple-mcp, we will use the science-mcp repository in SUSE’s Open Build Service. It’s a simple matter of adding the repository, and then installing the packages.
 
-```
+```bash
 sudo zypper addrepo https://download.opensuse.org/repositories/science:/machinelearning:/mcp/SLE_16.0/ science-mcp
 sudo zypper install mcphost simple-mcp
 ```
