@@ -162,21 +162,21 @@ And it works!
 
     All packages are up to date.
         gemini-2.5-flash (23:21)
-  ```
+```
 
 # Ring 2: systemd
-Next we will configure a systemd service to run the simple-mcp server. Running under systemd allows proper logging through journalctl, and other conveniences, but for our purposes, it will also mean that we can present a view of the filesystem to the process that is strictly limited to only what it needs. In this way, in the event that someone does get control of the running simple-mcp process, their access is limited. 
+Next we will configure a systemd service to run the simple-mcp server. Running under systemd allows proper logging through journalctl, and other conveniences, but for our purposes, it will also mean that we can present a view of the filesystem to the process that is strictly limited to only what it needs. In this way, in the event that someone does get control of the running simple-mcp process, their access is limited.
 
 ## Securing the Filesystem
-To run as a systemd service you need to put the configuration files where a systemd service expects to find it, in the /etc/ directory, and then create a service file in the TOML format that:
+To run as a systemd service you need to put the configuration files where the systemd service expects to find it, in the /etc/ directory, and then create a systemd service file that:
 
- 1. Describes the services to the system
+ 1. Describes the service to the systemd
  1. Defines the user and group under which to run the service
  1. The command to run on startup
- 1. The file access that is needed for the service (and only the file access that is needed)
- 1. Whether or not the the service is allowed new privilege (this is needed so that zypper list-updates can run as root)
+ 1. The file access that is needed for the service
+ 1. Whether or not the service is allowed new privileges (this is needed so that zypper list-updates can run as root)
 
-Because we are running it under the mcp user, it means that all of the restrictions and permissions we configured above will apply. However, it is customary and expected that the system file will run in /etc/simple-mcp/ not in the mcp home directory. So first, we will copy the file there as root, and then grant read permissions to the mcp group as we did before.
+Because we are running it under the mcp user, it means that all of the restrictions and permissions we configured above will apply. However, it is customary and expected that the system file will be placed in /etc/simple-mcp/ not in the mcp home directory. So first, we will copy the file there as root, and then grant read permissions to the mcp group as we did before.
 
 ```bash
 # Create the directory
@@ -190,20 +190,18 @@ sudo chown root:mcp /etc/simple-mcp/simple-mcp.yaml
 sudo chmod 640 /etc/simple-mcp/simple-mcp.yaml
 ```
 
-After some trial and error and the assistance of gen AI, here is a service file that does what is needed, with comments inline. The following directory permissions were found to be required for running list-updates as root:
+Below you can find a service file that does what is needed, with comments inline. The following writable directories were found to be required for running list-updates as root:
  * /run - zypper drops a file here called zypp.pid to make sure that only one instance of zypper is running. If it can't write the file, it won't run.
  * /tmp - zypper uses this for unpacking compressed files, and storing other things. Note that later we say "PrivateTmp=yes", which means that systemd gives the process its own /tmp directory and so the process can't read tmp content from other programs.
  * /var/cache/zypp - obviously where zypper caches files, like the XML and YAML from the update servers. zypper list-updates won't be able to refresh if this isn't writable.
  * /var/lib/zypp - this is where zypper writes it's dependency data when there is a refresh.
- * /var/lib/rmp - the database of installed software, lockfiles, keys, and such need to be written for zypper to operate.
+ * /var/lib/rpm - the database of installed software, lockfiles, keys, and such need to be written for zypper to operate.
  * /etc/zypp - if your Suse Customer Care Center token expires, and new one needs to be refreshed and stored here.
  * /var/log - where zypper writes its logs
 
- All of this is granted access in the ```ReadWritePaths``` variable. Anything outside of these paths is forbidden by ```ProtectSystem=strict```.
+All these write accesses are modelled in the ```ReadWritePaths``` variable. Anything outside of these paths is forbidden by ```ProtectSystem=strict```.
 
-```bash
-
-```toml
+```systemd
 [Unit]
 Description=Simple MCP Server
 After=network.target
@@ -237,12 +235,12 @@ Write this file to ```/etc/systemd/system/simple-mcp.service``` or use ```sudo v
 
 Now it's time to run the processes under systemd.
 
-For sanities sake, make sure that simple-mcp isn't still running:
+To be on the safe side, make sure that simple-mcp isn't still running:
 ```bash
 killall simple-mcp
 ```
 
-The reload the systemd daemon so that it finds the service file:
+Then reload the systemd daemon so that it finds the service file:
 ```bash
 sudo systemctl daemon-reload
 ```
@@ -299,10 +297,10 @@ Loading repository data...
 Reading installed packages...
 ```
 
-Notice that ListAllUpdates includes "Refreshing service", which means that command was able to ru with root.
+Notice that ListAllUpdates includes "Refreshing service", which means that command was able to run with root.
 
 ### Testing The Containment
-Let's imagine that somehow a new tool got added to the configuration that tries to read from teh home directory. Running under the mcp user as normal this would totally allowed, it's the mcp user's home dir, afterall. If you want to test out this scenario, you can add this tool to simple-mcp.yaml file:
+Let's imagine that somehow a new tool got added to the configuration that tries to read from the home directory. Running under the mcp user as normal this would totally allowed, it's the mcp user's home dir, after all. If you want to test out this scenario, you can add this tool to simple-mcp.yaml file:
 
 ```yaml
     - name: ListHomeDir
@@ -317,7 +315,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart simple-mcp
 ```
 
-Thencall list tools:
+Then call list tools:
 ```bash
 simple-mcp-cli list-tools
 ```
@@ -352,11 +350,11 @@ Aha! But it doesn't work, because system said it doesn't have access!
 ## Securing the Network
 It is not possible to simply blanket deny access to the network for the mcp serer, because:
  1. The MCP server listens to port 8080 for inbound connections, though only on the local system at address 127.0.0.1.
- 1. zypper list-updates requires an outbound connection to a repository mirror. 
+ 1. zypper list-updates requires an outbound connection to a repository mirror.
 
-However, it is possible to tighten up the use of the network to make it hard for an attacker to turn the mcp server into backdoor, or from moving laterally in your network. We will add some policy to the service file for this. Add the following to the service file.
+However, it is possible to tighten up the use of the network to make it hard for an attacker to turn the mcp server into backdoor, or from moving laterally in your network. We will add some additional policies to the service file for this, as follows:
 
-```toml
+```systemd
 # allow networking so zypper can work
 PrivateNetwork=no
 
@@ -376,9 +374,9 @@ Do the little systemctl dance again, and run the tool again:
 sudo systemctl daemon-reload
 sudo systemctl restart simple-mcp
 simple-mcp-cli tool ListAllUpdates
-``` 
+```
 
-And you can see that the mcp server is stil working as expecting. There is a small "gotcha" here, that you should be aware of. Notice that we denied access to any ip address on the local network. It's possible that your server is configured to use a DNS server on the lan, specifically on the router. In that case, you can work through some complicated systemd rules to whitelist only the DNS server, or you can use an external DNS server, such as 8.8.8.8 or 1.1.1.1.
+And you can see that the mcp server is still working as expected. There is a small "gotcha" here, that you should be aware of. Notice that we denied access to any ip address on the local network. It's possible that your server is configured to use a DNS server on the LAN, specifically on the router. In that case, you can work through some complicated systemd rules to whitelist only the DNS server, or you can use an external DNS server, such as 8.8.8.8 or 1.1.1.1.
 
 ### Testing the Containment
 Let's try another experiment to test the containment, but pretending that another tool got added. This one tries to download information from the router.
@@ -390,12 +388,12 @@ Let's try another experiment to test the containment, but pretending that anothe
       parameters: []
 ```
 
-If you add that to your simple-mcp.yaml configuration file, do the dand and run the tool again:
+If you add that to your simple-mcp.yaml configuration file, do the dance and run the tool again:
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl restart simple-mcp
 simple-mcp-cli tool DownloadRouter
-``` 
+```
 
 We can see that curl fails:
 ```bash
@@ -410,7 +408,7 @@ We can see that curl fails:
 
 So the simple-mcp process can be reached and can interact with the internet as zypper needs to, but it can't move around inside your network.
 
-SUSE does actually support using a static ip address for cases where whitelisting specific URL's is required, but this is generally considered to not be worth the problems it causes, especially if your processes systemd services are otherwise properly restricted. For example, in this case, if the LLM or other attack vector does trick the simple-mcp process to download a payload from the internet, that payload will not be able to read any data except from specifically allowed places on the filesystem, will not be able to run a backdoor server, etc... For almost all use cases, giving up the advantages of using DNS and URLs is not worth it, though it is possible. 
+SUSE does actually support using a static ip address for cases where whitelisting specific URL's is required, but this is generally considered to not be worth the problems it causes, especially if your processes systemd services are otherwise properly restricted. For example, in this case, if the LLM or other attack vector does trick the simple-mcp process to download a payload from the internet, that payload will not be able to read any data except from specifically allowed places on the filesystem, will not be able to run a backdoor server, etc... For almost all use cases, giving up the advantages of using DNS and URLs is not worth it, though it is possible.
 
 # Ring 3: SELinux
 Is there even more that can be done to secure the MCP server? Absolutely, yes. The next tool in the toolbox is to use "Security Enhanced Linux (more comonly, SELinux). SELinux comes preinstalled with SLES 16. The way it works is that you create an SELinux policy that tells the kernel to watch the process careful, and only allow the process access to what it should have access to. Even if the user space gets hacked by a bad actor, the kernel is still there applying the policy. Additionally, it comes with auditing and logging tools.
