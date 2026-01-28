@@ -176,8 +176,28 @@ To run as a systemd service you need to put the configuration files where the sy
  1. The file access that is needed for the service
  1. Whether or not the service is allowed new privileges (this is needed so that zypper list-updates can run as root)
 
+<!-- this part here is unclear to me:
+  - I don't get what the first sentence has to do with the second one.
+  - Why are the restrictions and permissions coupled to running the service
+    under the mcp user?
+
+  I would simply drop this part and start with something like:
+
+  We need to place the configuration in system directory in
+  `/etc/simple-mcp/`, as is customary for systemd services. For this purpose
+  we copy overthe configuration file from the `mcp` user's home directory as
+  follows:
+-->
 Because we are running it under the mcp user, it means that all of the restrictions and permissions we configured above will apply. However, it is customary and expected that the system file will be placed in /etc/simple-mcp/ not in the mcp home directory. So first, we will copy the file there as root, and then grant read permissions to the mcp group as we did before.
 
+<!--
+Could this maybe be replaced by a simpler one-liner, like:
+
+sudo install -D -o root -g mcp -m 640 /home/mcp/simple-mcp.yaml /etc/simple-mcp/simple-mcp.yaml
+
+This would keep the original file in place, but this could be a good idea
+after all, maybe it will still be needed at a later time?
+-->
 ```bash
 # Create the directory
 sudo mkdir -p /etc/simple-mcp
@@ -187,11 +207,20 @@ sudo mv /home/mcp/simple-mcp.yaml /etc/simple-mcp/
 
 # set permissions and ownership
 sudo chown root:mcp /etc/simple-mcp/simple-mcp.yaml
+# can this configuration file contain sensitive information, since it is not
+# world-readable?
+# if that is the case, then setting the mode of /etc/simple-mcp to 0750 might
+# be a good idea, as well, to prevent any accidents.
 sudo chmod 640 /etc/simple-mcp/simple-mcp.yaml
 ```
 
 Below you can find a service file that does what is needed, with comments inline. The following writable directories were found to be required for running list-updates as root:
  * /run - zypper drops a file here called zypp.pid to make sure that only one instance of zypper is running. If it can't write the file, it won't run.
+<!-- 
+Explicitly marking /tmp as writable is unnecessary, when we have PrivateTmp=yes. `man systemd.exec` says:
+
+Note that if ProtectSystem= is set to "strict" and PrivateTmp= is enabled, then /tmp/ and /var/tmp/ will be writable.
+-->
  * /tmp - zypper uses this for unpacking compressed files, and storing other things. Note that later we say "PrivateTmp=yes", which means that systemd gives the process its own /tmp directory and so the process can't read tmp content from other programs.
  * /var/cache/zypp - obviously where zypper caches files, like the XML and YAML from the update servers. zypper list-updates won't be able to refresh if this isn't writable.
  * /var/lib/zypp - this is where zypper writes it's dependency data when there is a refresh.
@@ -199,7 +228,9 @@ Below you can find a service file that does what is needed, with comments inline
  * /etc/zypp - if your Suse Customer Care Center token expires, and new one needs to be refreshed and stored here.
  * /var/log - where zypper writes its logs
 
-All these write accesses are modelled in the ```ReadWritePaths``` variable. Anything outside of these paths is forbidden by ```ProtectSystem=strict```.
+<!-- triple-backticks are only valid for code-blocks in Markdown. this here
+confuses the markdown parser, I believe. Single-backticks should do. -->
+All these write accesses are modelled in the `ReadWritePaths` variable. Anything outside of these paths is forbidden by `ProtectSystem=strict`.
 
 ```systemd
 [Unit]
@@ -223,6 +254,11 @@ ProtectHome=yes
 # Put temporary files in a private location
 PrivateTmp=yes
 
+# this part I don't fully understand. How exactly does this escalation from
+# mcp to root happen? NoNewPrivileges mostly affects setuid-root binaries, and
+# I wonder where they should come into play in the context of "zypper
+# list-updates"
+
 # zypper list-updates needs to run as root, so don't block that
 NoNewPrivileges=false
 
@@ -230,8 +266,10 @@ NoNewPrivileges=false
 WantedBy=multi-user.target
 ```
 
+<!-- system service configuration files are not TOML. They are something like
+INI files, but use extensions. -->
 
-Write this file to ```/etc/systemd/system/simple-mcp.service``` or use ```sudo vi /etc/systemd/system/simple-mcp.service``` and paste in the TOML.
+Write this file to `/etc/systemd/system/simple-mcp.service` or use `sudo vi /etc/systemd/system/simple-mcp.service` and paste in the TOML.
 
 Now it's time to run the processes under systemd.
 
