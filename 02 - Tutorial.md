@@ -3,7 +3,6 @@ In part 1 we created am MCP server with simple-mcp and started running prompts w
 
 1. Use a least privledges with minimal permissions.
 2. Run the process as a systemd service that runs simple-mcp in a container way.
-3. Create an SELinux profile that works at the kernel level to give simple-mcp access only to an allow list of binaries, libraries, and other files.
 
 ## Conceptual Overview
 ### simple-mcp-hardenning
@@ -21,7 +20,7 @@ It has the following tool for checking for out of date packages:
 For simplicity, add this to the tools section of simple-mcp.yaml.
 
 # Ring 1: Ownership and Permissions
-In order to safely run that tool as root, but also mitigate other attacks, we will set up ownership and permisions in a least privledges way. There are other prompt-injection risks that we will mitigate later when we create an SELinux profile and Systemd service file that keeps the simple-mcp process from creating new files or spawning new processes.
+In order to safely run that tool as root, but also mitigate other attacks, we will set up ownership and permisions in a least privledges way.
 
 ## Overview of the setup.
  1. Create an mcp group
@@ -411,6 +410,3 @@ We can see that curl fails:
 So the simple-mcp process can be reached and can interact with the internet as zypper needs to, but it can't move around inside your network.
 
 SUSE does actually support using a static ip address for cases where whitelisting specific URL's is required, but this is generally considered to not be worth the problems it causes, especially if your processes systemd services are otherwise properly restricted. For example, in this case, if the LLM or other attack vector does trick the simple-mcp process to download a payload from the internet, that payload will not be able to read any data except from specifically allowed places on the filesystem, will not be able to run a backdoor server, etc... For almost all use cases, giving up the advantages of using DNS and URLs is not worth it, though it is possible. 
-
-# Ring 3: SELinux
-Is there even more that can be done to secure the MCP server? Absolutely, yes. The next tool in the toolbox is to use "Security Enhanced Linux (more comonly, SELinux). SELinux comes preinstalled with SLES 16. The way it works is that you create an SELinux policy that tells the kernel to watch the process careful, and only allow the process access to what it should have access to. Even if the user space gets hacked by a bad actor, the kernel is still there applying the policy. Additionally, it comes with auditing and logging tools.
