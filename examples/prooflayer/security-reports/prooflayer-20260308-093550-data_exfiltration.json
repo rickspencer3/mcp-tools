@@ -1,0 +1,52 @@
+{
+  "prooflayer_version": "0.1.0",
+  "timestamp": "2026-03-08T09:35:50.782824Z",
+  "threat": {
+    "type": "data_exfiltration",
+    "tool": "ListProcesses",
+    "arguments": {
+      "filter": "***REDACTED***"
+    },
+    "risk_score": 100,
+    "action": "BLOCK"
+  },
+  "detection": {
+    "rules_matched": [
+      {
+        "id": "cmd-inject-pipe",
+        "severity": "critical",
+        "message": "Command injection: Pipe operator '|' detected",
+        "category": "command_injection"
+      },
+      {
+        "id": "cmd-inject-curl",
+        "severity": "critical",
+        "message": "Command injection: 'curl' command detected",
+        "category": "command_injection"
+      },
+      {
+        "id": "exfil-file-read-shadow",
+        "severity": "critical",
+        "message": "Data exfiltration: /etc/shadow access detected",
+        "category": "data_exfiltration"
+      },
+      {
+        "id": "exfil-cat-command",
+        "severity": "medium",
+        "message": "Data exfiltration: 'cat' file read detected",
+        "category": "data_exfiltration"
+      }
+    ],
+    "confidence": "HIGH",
+    "scoring_breakdown": {}
+  },
+  "context": {
+    "timestamp_detected": "2026-03-08T09:35:50.782824Z",
+    "timestamp_received": "2026-03-08T09:35:50.782824Z",
+    "latency_ms": 0.0,
+    "mcp_message_id": null,
+    "mcp_session_id": null,
+    "server": "unknown"
+  },
+  "owasp_mapping": []
+}
