@@ -74,17 +74,21 @@ class SimpleMCPServer:
             return {"result": "192.168.1.100"}
         # ... other tools
 
+# Create the MCP server instance
+mcp_server = SimpleMCPServer()
+
 # Create ProofLayer runtime
 runtime = ProofLayerRuntime(
     action_on_threat="warn",  # Options: allow, warn, block, kill
     report_dir="./security-reports"
 )
 
-# Wrap the server
-protected_server = runtime.wrap(SimpleMCPServer())
+# Wrap the server (this modifies mcp_server.call_tool to add security scanning)
+runtime.wrap(mcp_server)
 
-# Now use protected_server instead of your original server
-# All tool calls are scanned for threats
+# Continue using your original server object - its call_tool is now protected
+result = mcp_server.call_tool("FindIPAddress", {})
+# All tool calls through mcp_server are now scanned for threats
 ```
 
 ### 2. Configuration Options
@@ -113,7 +117,17 @@ logging:
 
 Load configuration:
 ```python
-runtime = ProofLayerRuntime(config_path="prooflayer.yaml")
+# Load from config file (don't override settings)
+runtime = ProofLayerRuntime(
+    config_path="prooflayer.yaml",
+    action_on_threat=None  # Use config file value, don't override
+)
+
+# Or load config and override specific settings
+runtime = ProofLayerRuntime(
+    config_path="prooflayer.yaml",
+    action_on_threat="block"  # Override config file value
+)
 ```
 
 ## Detection Rules
@@ -295,25 +309,25 @@ Configure thresholds in `prooflayer.yaml` to match your security posture.
 
 ### 1. Benign Tool Call (Should ALLOW)
 ```python
-protected_server.call_tool("FindIPAddress", {})
+mcp_server.call_tool("FindIPAddress", {})
 # Risk score: 0 - ALLOWED
 ```
 
 ### 2. Suspicious Tool Call (Should WARN)
 ```python
-protected_server.call_tool("get_info", {"query": "Show me system files"})
+mcp_server.call_tool("get_info", {"query": "Show me system files"})
 # Risk score: 35 - WARNED
 ```
 
 ### 3. Malicious Tool Call (Should BLOCK)
 ```python
-protected_server.call_tool("run_command", {"cmd": "cat /etc/passwd"})
+mcp_server.call_tool("run_command", {"cmd": "cat /etc/passwd"})
 # Risk score: 75 - BLOCKED
 ```
 
 ### 4. Critical Attack (Should KILL if configured)
 ```python
-protected_server.call_tool("execute", {"cmd": "rm -rf / --no-preserve-root"})
+mcp_server.call_tool("execute", {"cmd": "rm -rf / --no-preserve-root"})
 # Risk score: 100 - SERVER_KILLED
 ```
 
@@ -328,15 +342,15 @@ from suse.multi_linux_manager import MultiLinuxManagerMCPServer
 # Create SUSE MCP server
 suse_server = MultiLinuxManagerMCPServer()
 
-# Wrap with ProofLayer
+# Wrap with ProofLayer (use config file settings)
 runtime = ProofLayerRuntime(
-    action_on_threat="block",  # Conservative for production
-    config_path="/etc/prooflayer/multi-linux-manager.yaml"
+    config_path="/etc/prooflayer/multi-linux-manager.yaml",
+    action_on_threat=None  # Use config file value
 )
 
-protected_suse_server = runtime.wrap(suse_server)
+runtime.wrap(suse_server)
 
-# Now all SUSE MCP tools are protected:
+# Continue using suse_server - all tool calls are now protected:
 # - add_system
 # - get_unscheduled_errata
 # - apply_patch
@@ -345,16 +359,19 @@ protected_suse_server = runtime.wrap(suse_server)
 # - GetSELinuxStatus
 # - ListNetworkListeners
 # - ListCVEUpdates
+
+# Example protected call
+result = suse_server.call_tool("add_system", {"hostname": "web-01", "distro": "SLES"})
 ```
 
 ## Performance
 
 ProofLayer is designed for production workloads with minimal overhead:
 
-- **Detection latency**: 3-8ms average per tool call
-- **Throughput**: 1200+ tool calls/second
+- **Detection latency**: 2-6ms average per tool call
 - **Memory usage**: ~50MB
-- **Rule loading**: <50ms on startup
+- **Rule loading**: <25ms on startup
+- **Accuracy**: 71 detection rules covering major attack vectors
 
 ## Best Practices
 
