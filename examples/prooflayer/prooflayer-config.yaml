@@ -1,0 +1,94 @@
+# ProofLayer Configuration for simple-mcp Protection
+# ==================================================
+#
+# This configuration protects simple-mcp servers from:
+# - Command injection attacks
+# - Prompt injection attacks
+# - Data exfiltration attempts
+# - Jailbreak attempts
+
+detection:
+  enabled: true
+
+  # ProofLayer ships with 75+ built-in detection rules
+  # Leave rules_dir empty to use packaged rules, or specify custom directory
+  rules_dir: null
+
+  # Risk score thresholds (0-100)
+  score_threshold:
+    allow: [0, 29]      # Low risk - allow execution
+    warn: [30, 69]      # Medium risk - log warning but allow
+    block: [70, 100]    # High risk - block execution
+
+response:
+  # Action to take when threat detected:
+  # - allow: Log only, always execute
+  # - warn: Log warning, execute, generate report
+  # - block: Prevent execution, generate report (recommended for production)
+  # - kill: Terminate MCP server process (only for critical systems)
+  on_threat: block
+
+  # Directory for security reports (JSON format)
+  report_dir: ./security-reports
+
+  # Optional: POST alerts to webhook (e.g., Slack, PagerDuty)
+  alert_webhook: null
+
+  # Optional: Custom response messages
+  block_message: "Tool execution blocked due to security policy violation"
+
+performance:
+  # Maximum acceptable latency for detection (milliseconds)
+  # ProofLayer targets <10ms average latency
+  max_latency_ms: 10
+
+  # Cache compiled rules for faster repeated scans
+  cache_rules: true
+
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+
+  # Log format: json or text
+  format: json
+
+  # Optional: Log file path (defaults to stdout)
+  file: null
+
+# Advanced: Allowlisting
+# Bypass scanning for known-safe tool calls
+allowlist:
+  enabled: false
+
+  # Example: Allow specific tools without scanning
+  # tools:
+  #   - FindIPAddress
+  #   - GetKernelInfo
+
+  # Example: Allow specific argument patterns
+  # patterns:
+  #   - tool: CheckDiskSpace
+  #     args:
+  #       path: "^/$"  # Only allow root filesystem check
+
+# Advanced: Custom detection rules
+# Supplement built-in rules with custom patterns
+custom_rules:
+  enabled: false
+
+  # Example custom rules
+  # rules:
+  #   - id: custom-001
+  #     name: Block internal IP access
+  #     pattern: "192\\.168\\..*"
+  #     severity: high
+  #     score: 40
+  #     category: data_exfiltration
+
+# Advanced: Semantic analysis (future)
+# Use LLM to detect sophisticated evasion attempts
+semantic_analysis:
+  enabled: false
+  # provider: openai
+  # model: gpt-4
+  # api_key: ${OPENAI_API_KEY}
