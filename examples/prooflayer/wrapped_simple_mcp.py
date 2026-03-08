@@ -10,7 +10,7 @@ Usage:
     python wrapped_simple_mcp.py
 
 Requirements:
-    pip install prooflayer pyyaml
+    pip install prooflayer-runtime
 """
 
 import sys
@@ -20,7 +20,7 @@ from typing import Dict, Any
 try:
     from prooflayer import ProofLayerRuntime
 except ImportError:
-    print("Error: ProofLayer not installed. Run: pip install prooflayer")
+    print("Error: ProofLayer not installed. Run: pip install prooflayer-runtime")
     sys.exit(1)
 
 # Configure logging

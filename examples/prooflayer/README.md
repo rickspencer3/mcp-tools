@@ -13,13 +13,8 @@ This directory contains a working example of protecting a simple-mcp server with
 ### 1. Install ProofLayer
 
 ```bash
-# Install from PyPI (when published)
-pip install prooflayer
-
-# Or install from source
-git clone https://github.com/sinewaveai/prooflayer-runtime.git
-cd prooflayer-runtime
-pip install -e .
+# Install from PyPI
+pip install prooflayer-runtime
 ```
 
 ### 2. Run the Demo
@@ -202,8 +197,8 @@ For production SUSE deployments with systemd, see **Tutorial 03** in the main re
 ## Support
 
 - **Documentation**: See `03-runtime-security-with-prooflayer.md` in the parent directory
-- **Issues**: https://github.com/sinewaveai/prooflayer-runtime/issues
-- **Source Code**: https://github.com/sinewaveai/prooflayer-runtime
+- **Website**: https://www.proof-layer.com
+- **Support**: Visit https://www.proof-layer.com for documentation and assistance
 
 ## License
 

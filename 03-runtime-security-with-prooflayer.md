@@ -49,13 +49,8 @@ This tutorial assumes:
 ProofLayer is a Python package with minimal dependencies (only PyYAML):
 
 ```bash
-# Install from PyPI (when published)
-pip install prooflayer
-
-# Or install from source
-git clone https://github.com/sinewaveai/prooflayer-runtime.git
-cd prooflayer-runtime
-pip install -e .
+# Install from PyPI
+pip install prooflayer-runtime
 ```
 
 ## Quick Start: Wrapping an MCP Server
@@ -404,9 +399,8 @@ ProofLayer is designed for production workloads with minimal overhead:
 
 ## Additional Resources
 
-- ProofLayer GitHub: https://github.com/sinewaveai/prooflayer-runtime
-- Demo script: See `docs/DEMO_SCRIPT.md` in the ProofLayer repository
-- Data sheet: See `docs/DATA_SHEET.md` for feature comparison and pricing
+- ProofLayer Website: https://www.proof-layer.com
+- Documentation and support available at https://www.proof-layer.com
 
 ## Conclusion
 
